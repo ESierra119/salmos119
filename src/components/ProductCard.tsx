@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 import type { Product } from '@/types/product';
 import { useCart } from '@/context/CartContext';
@@ -10,14 +11,19 @@ export function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
   const [justAdded, setJustAdded] = useState(false);
 
-  function handleAdd() {
+  function handleAdd(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
     addItem(product);
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 900);
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded border border-goldPale bg-white transition hover:-translate-y-1 hover:shadow-lg">
+    <Link
+      href={`/producto/${product.id}`}
+      className="flex flex-col overflow-hidden rounded border border-goldPale bg-white transition hover:-translate-y-1 hover:shadow-lg"
+    >
       <div className="relative flex h-[200px] items-center justify-center overflow-hidden bg-creamDeep">
         {product.categories?.name && (
           <span className="absolute left-2.5 top-2.5 rounded-full bg-white/90 px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-goldDark">
@@ -66,6 +72,6 @@ export function ProductCard({ product }: { product: Product }) {
           </button>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

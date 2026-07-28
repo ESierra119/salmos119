@@ -8,7 +8,7 @@ type CartContextValue = {
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (product: Product) => void;
+  addItem: (product: Product, qty?: number) => void;
   changeQty: (id: string, delta: number) => void;
   removeItem: (id: string) => void;
   subtotal: number;
@@ -24,11 +24,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const openCart = useCallback(() => setIsOpen(true), []);
   const closeCart = useCallback(() => setIsOpen(false), []);
 
-  const addItem = useCallback((product: Product) => {
+  const addItem = useCallback((product: Product, qty: number = 1) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.id === product.id);
       if (existing) {
-        return prev.map((i) => (i.id === product.id ? { ...i, qty: i.qty + 1 } : i));
+        return prev.map((i) => (i.id === product.id ? { ...i, qty: i.qty + qty } : i));
       }
       return [
         ...prev,
@@ -37,7 +37,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           name: product.name,
           price: product.price,
           image_url: product.image_url,
-          qty: 1,
+          qty,
         },
       ];
     });
