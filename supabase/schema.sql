@@ -45,6 +45,17 @@ create trigger trg_products_updated_at
 before update on products
 for each row execute procedure set_updated_at();
 
+-- Imágenes adicionales por producto (la foto principal sigue viviendo en products.image_url)
+create table if not exists product_images (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null references products(id) on delete cascade,
+  image_url text not null,
+  sort_order integer default 0,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_product_images_product_id on product_images(product_id);
+
 -- ============================================================
 -- Seguridad (Row Level Security)
 -- Cualquiera puede LEER productos activos (catálogo público).
@@ -53,6 +64,7 @@ for each row execute procedure set_updated_at();
 
 alter table products enable row level security;
 alter table categories enable row level security;
+alter table product_images enable row level security;
 
 drop policy if exists "Lectura pública de productos activos" on products;
 create policy "Lectura pública de productos activos"
@@ -63,6 +75,17 @@ drop policy if exists "Lectura pública de categorías" on categories;
 create policy "Lectura pública de categorías"
   on categories for select
   using (true);
+
+drop policy if exists "Lectura pública de imágenes de producto" on product_images;
+create policy "Lectura pública de imágenes de producto"
+  on product_images for select
+  using (true);
+
+drop policy if exists "Admins pueden todo en imágenes de producto" on product_images;
+create policy "Admins pueden todo en imágenes de producto"
+  on product_images for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
 
 drop policy if exists "Admins pueden todo en productos" on products;
 create policy "Admins pueden todo en productos"

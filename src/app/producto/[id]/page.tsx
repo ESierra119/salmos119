@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -6,7 +5,8 @@ import { Header } from '@/components/Header';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductDetailActions } from '@/components/ProductDetailActions';
-import type { Category, Product } from '@/types/product';
+import { ProductGallery } from '@/components/ProductGallery';
+import type { Category, Product, ProductImage } from '@/types/product';
 
 export const revalidate = 0;
 
@@ -24,15 +24,41 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
 
   if (!product) notFound();
 
-  const { data: related } = await supabase
-    .from('products')
-    .select('*, categories(id, name, slug)')
-    .eq('active', true)
-    .eq('category_id', (product as Product).category_id ?? '')
-    .neq('id', (product as Product).id)
-    .limit(4);
-
   const p = product as Product;
+
+  const { data: extraImages } = await supabase
+    .from('product_images')
+    .select('*')
+    .eq('product_id', p.id)
+    .order('sort_order');
+
+  const gallery = [
+    ...(p.image_url ? [p.image_url] : []),
+    ...((extraImages as ProductImage[] | null)?.map((i) => i.image_url) ?? []),
+  ];
+
+  // Relacionados: primero de la misma categoría; si no alcanza, se completa con otros productos.
+  let related: Product[] = [];
+  if (p.category_id) {
+    const { data } = await supabase
+      .from('products')
+      .select('*, categories(id, name, slug)')
+      .eq('active', true)
+      .eq('category_id', p.category_id)
+      .neq('id', p.id)
+      .limit(4);
+    related = (data as Product[]) ?? [];
+  }
+  if (related.length < 4) {
+    const { data } = await supabase
+      .from('products')
+      .select('*, categories(id, name, slug)')
+      .eq('active', true)
+      .neq('id', p.id)
+      .limit(4 - related.length);
+    const extra = ((data as Product[]) ?? []).filter((r) => !related.some((x) => x.id === r.id));
+    related = [...related, ...extra];
+  }
 
   return (
     <>
@@ -53,17 +79,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
 
       <section className="mx-auto grid max-w-6xl gap-12 px-6 py-10 md:grid-cols-2">
         <div className="flex items-center justify-center rounded border border-goldPale bg-creamDeep p-6">
-          {p.image_url ? (
-            <div className="relative aspect-[4/5] w-full max-w-sm overflow-hidden rounded shadow-lg">
-              <Image src={p.image_url} alt={p.name} fill className="object-cover" sizes="(max-width: 768px) 90vw, 400px" priority />
-            </div>
-          ) : (
-            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#B08D57" strokeWidth="1" className="opacity-40">
-              <path d="M4 19.5V5a2 2 0 0 1 2-2h12v16.5" />
-              <path d="M6 21h13" />
-              <path d="M6 3v18" />
-            </svg>
-          )}
+          <ProductGallery images={gallery} alt={p.name} />
         </div>
 
         <div>
@@ -86,11 +102,11 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         </div>
       </section>
 
-      {related && related.length > 0 && (
+      {related.length > 0 && (
         <section className="mx-auto max-w-6xl px-6 pb-16 pt-6">
           <h2 className="mb-6 font-display text-2xl">También te puede interesar</h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {(related as Product[]).map((r) => (
+            {related.map((r) => (
               <ProductCard key={r.id} product={r} />
             ))}
           </div>

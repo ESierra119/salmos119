@@ -4,6 +4,13 @@ export type Category = {
   slug: string;
 };
 
+export type ProductImage = {
+  id: string;
+  product_id: string;
+  image_url: string;
+  sort_order: number;
+};
+
 export type Product = {
   id: string;
   name: string;
