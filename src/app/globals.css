@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: 'Cormorant Garamond', serif;
+  --font-script: 'Dancing Script', cursive;
+  --font-body: 'Jost', sans-serif;
+}
+
+body {
+  background: #fbf6ee;
+  color: #221f1d;
+}
+
+.leaf-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.leaf-divider .line {
+  width: 48px;
+  height: 1px;
+  background: #b08d57;
+  opacity: 0.6;
+}
