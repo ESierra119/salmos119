@@ -49,7 +49,12 @@ export function ProductCard({ product }: { product: Product }) {
 
       <div className="flex flex-1 flex-col gap-1.5 p-4">
         <h3 className="min-h-[44px] font-display text-[17px] leading-snug">{product.name}</h3>
-        <p className="min-h-[32px] text-xs leading-relaxed text-inkSoft">{product.description}</p>
+        {product.description && (
+          <p className="line-clamp-3 text-xs leading-relaxed text-inkSoft">
+            {product.description}{' '}
+            <span className="whitespace-nowrap font-medium text-goldDark">Ver más</span>
+          </p>
+        )}
 
         <div className="mt-auto flex items-center justify-between pt-2.5">
           <span className="font-display text-[17px] text-ink">{formatCOP(product.price)}</span>
