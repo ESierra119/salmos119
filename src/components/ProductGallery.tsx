@@ -20,8 +20,8 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
 
   return (
     <div className="w-full max-w-sm">
-      <div className="relative aspect-[4/5] w-full overflow-hidden rounded shadow-lg">
-        <Image src={images[active]} alt={alt} fill className="object-cover" sizes="400px" priority />
+      <div className="relative aspect-[4/5] w-full overflow-hidden rounded bg-white shadow-lg">
+        <Image src={images[active]} alt={alt} fill className="object-contain p-3" sizes="400px" priority />
       </div>
 
       {images.length > 1 && (
@@ -30,12 +30,12 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
             <button
               key={img + i}
               onClick={() => setActive(i)}
-              className={`relative h-16 w-14 flex-shrink-0 overflow-hidden rounded border-2 transition ${
+              className={`relative h-16 w-14 flex-shrink-0 overflow-hidden rounded border-2 bg-white transition ${
                 active === i ? 'border-gold' : 'border-transparent opacity-70 hover:opacity-100'
               }`}
               aria-label={`Ver imagen ${i + 1}`}
             >
-              <Image src={img} alt={`${alt} ${i + 1}`} fill className="object-cover" sizes="56px" />
+              <Image src={img} alt={`${alt} ${i + 1}`} fill className="object-contain p-1" sizes="56px" />
             </button>
           ))}
         </div>

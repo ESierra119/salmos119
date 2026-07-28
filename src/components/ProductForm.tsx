@@ -195,7 +195,7 @@ export function ProductForm({
             alt="Vista previa"
             width={100}
             height={120}
-            className="mt-3 rounded border border-goldPale object-cover"
+            className="mt-3 rounded border border-goldPale object-contain bg-white p-1"
           />
         )}
       </div>
@@ -218,7 +218,7 @@ export function ProductForm({
                       alt="Foto adicional"
                       width={80}
                       height={96}
-                      className="rounded border border-goldPale object-cover"
+                      className="rounded border border-goldPale object-contain bg-white p-1"
                     />
                     <button
                       type="button"

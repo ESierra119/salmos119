@@ -49,9 +49,9 @@ export function CartDrawer() {
           ) : (
             items.map((item) => (
               <div key={item.id} className="flex gap-3 border-b border-goldPale py-4">
-                <div className="flex h-[74px] w-[62px] flex-shrink-0 items-center justify-center overflow-hidden rounded bg-creamDeep">
+                <div className="flex h-[74px] w-[62px] flex-shrink-0 items-center justify-center overflow-hidden rounded bg-white">
                   {item.image_url ? (
-                    <Image src={item.image_url} alt={item.name} width={62} height={74} className="h-full w-full object-cover" />
+                    <Image src={item.image_url} alt={item.name} width={62} height={74} className="h-full w-full object-contain p-1" />
                   ) : (
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B08D57" strokeWidth="1.3">
                       <path d="M4 19.5V5a2 2 0 0 1 2-2h12v16.5" />
