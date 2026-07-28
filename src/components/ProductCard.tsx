@@ -52,7 +52,9 @@ export function ProductCard({ product }: { product: Product }) {
         {product.description && (
           <p className="line-clamp-3 text-xs leading-relaxed text-inkSoft">
             {product.description}{' '}
-            <span className="whitespace-nowrap font-medium text-goldDark">Ver más</span>
+            <span className="whitespace-nowrap font-medium text-goldDark underline underline-offset-2">
+              Ver más
+            </span>
           </p>
         )}
 
