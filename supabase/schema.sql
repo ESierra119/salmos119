@@ -85,6 +85,39 @@ create trigger trg_sales_updated_at
 before update on sales
 for each row execute procedure set_updated_at();
 
+-- Historial de abonos (con fecha) por cada venta
+create table if not exists sale_payments (
+  id uuid primary key default gen_random_uuid(),
+  sale_id uuid not null references sales(id) on delete cascade,
+  amount numeric(12,2) not null,
+  payment_date date not null default current_date,
+  notes text,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_sale_payments_sale_id on sale_payments(sale_id);
+
+-- Mantiene sales.paid_amount = suma de sus abonos automáticamente
+create or replace function sync_sale_paid_amount()
+returns trigger as $$
+declare
+  target_sale_id uuid;
+begin
+  target_sale_id := coalesce(new.sale_id, old.sale_id);
+  update sales
+    set paid_amount = (
+      select coalesce(sum(amount), 0) from sale_payments where sale_id = target_sale_id
+    )
+    where id = target_sale_id;
+  return null;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_sync_paid_amount on sale_payments;
+create trigger trg_sync_paid_amount
+after insert or update or delete on sale_payments
+for each row execute procedure sync_sale_paid_amount();
+
 -- ============================================================
 -- Seguridad (Row Level Security)
 -- Cualquiera puede LEER productos activos (catálogo público).
@@ -122,6 +155,14 @@ alter table sales enable row level security;
 drop policy if exists "Solo admins acceden a ventas" on sales;
 create policy "Solo admins acceden a ventas"
   on sales for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+alter table sale_payments enable row level security;
+
+drop policy if exists "Solo admins acceden a abonos" on sale_payments;
+create policy "Solo admins acceden a abonos"
+  on sale_payments for all
   using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 

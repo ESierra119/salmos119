@@ -47,6 +47,15 @@ export type Sale = {
   updated_at: string;
 };
 
+export type SalePayment = {
+  id: string;
+  sale_id: string;
+  amount: number;
+  payment_date: string;
+  notes: string | null;
+  created_at: string;
+};
+
 export type CartItem = {
   id: string;
   name: string;

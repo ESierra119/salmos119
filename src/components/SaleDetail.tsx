@@ -13,12 +13,13 @@ import {
   saleTotalProfit,
   suggestedInstallment,
 } from '@/lib/pricing';
-import type { Sale } from '@/types/product';
+import type { Sale, SalePayment } from '@/types/product';
 
-export function SaleDetail({ sale }: { sale: Sale }) {
+export function SaleDetail({ sale, payments }: { sale: Sale; payments: SalePayment[] }) {
   const router = useRouter();
   const supabase = createClient();
-  const [abono, setAbono] = useState('');
+  const [amount, setAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,25 +32,32 @@ export function SaleDetail({ sale }: { sale: Sale }) {
 
   async function handleAddPayment(e: React.FormEvent) {
     e.preventDefault();
-    const amount = Number(abono);
-    if (!amount || amount <= 0) return;
+    const value = Number(amount);
+    if (!value || value <= 0) return;
 
     setSaving(true);
     setError(null);
 
-    const newPaid = sale.paid_amount + amount;
-    const { error } = await supabase.from('sales').update({ paid_amount: newPaid }).eq('id', sale.id);
+    const { error } = await supabase
+      .from('sale_payments')
+      .insert({ sale_id: sale.id, amount: value, payment_date: paymentDate });
 
     setSaving(false);
     if (error) {
       setError('No se pudo registrar el abono: ' + error.message);
       return;
     }
-    setAbono('');
+    setAmount('');
     router.refresh();
   }
 
-  async function handleDelete() {
+  async function handleDeletePayment(id: string) {
+    if (!confirm('¿Quitar este abono? El saldo se recalcula automáticamente.')) return;
+    await supabase.from('sale_payments').delete().eq('id', id);
+    router.refresh();
+  }
+
+  async function handleDeleteSale() {
     if (!confirm('¿Eliminar este registro de venta? Esta acción no se puede deshacer.')) return;
     await supabase.from('sales').delete().eq('id', sale.id);
     router.push('/admin/ventas');
@@ -92,32 +100,72 @@ export function SaleDetail({ sale }: { sale: Sale }) {
             </>
           )}
           <Row label="Total a pagar" value={formatCOP(total)} strong />
-          <Row label="Abonado" value={formatCOP(sale.paid_amount)} />
+          <Row label="Abonado hasta hoy" value={formatCOP(sale.paid_amount)} />
           <Row label="Saldo" value={formatCOP(Math.max(0, balance))} strong />
           <Row label="Utilidad de esta venta" value={formatCOP(profit)} highlight />
         </div>
       </div>
 
+      {/* Historial de abonos */}
+      <div className="rounded border border-goldPale bg-white p-5">
+        <h3 className="mb-3 text-sm font-medium uppercase tracking-wider text-inkSoft">Historial de abonos</h3>
+        {payments.length === 0 ? (
+          <p className="text-sm text-inkSoft">Todavía no se ha registrado ningún abono.</p>
+        ) : (
+          <div className="space-y-2">
+            {payments.map((p) => (
+              <div key={p.id} className="flex items-center justify-between border-b border-goldPale py-2 text-sm last:border-0">
+                <div>
+                  <span className="font-medium">{formatCOP(p.amount)}</span>
+                  <span className="ml-2 text-xs text-inkSoft">
+                    {new Date(p.payment_date + 'T00:00:00').toLocaleDateString('es-CO', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+                <button onClick={() => handleDeletePayment(p.id)} className="text-xs text-red-600 underline">
+                  Quitar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {status !== 'Pagado' && (
         <form onSubmit={handleAddPayment} className="rounded border border-goldPale bg-white p-5">
-          <label className="mb-1.5 block text-xs text-inkSoft">Registrar abono (COP)</label>
-          <div className="flex gap-3">
-            <input
-              type="number"
-              min="0"
-              value={abono}
-              onChange={(e) => setAbono(e.target.value)}
-              className="flex-1 rounded border border-goldPale px-3 py-2.5 text-sm outline-none focus:border-gold"
-              placeholder="Ej: 50000"
-            />
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded bg-ink px-5 py-2.5 text-sm text-cream hover:bg-goldDark disabled:opacity-60"
-            >
-              {saving ? 'Guardando...' : 'Abonar'}
-            </button>
+          <h3 className="mb-3 text-sm font-medium uppercase tracking-wider text-inkSoft">Registrar nuevo abono</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs text-inkSoft">Monto (COP)</label>
+              <input
+                type="number"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full rounded border border-goldPale px-3 py-2.5 text-sm outline-none focus:border-gold"
+                placeholder="Ej: 50000"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-inkSoft">Fecha del abono</label>
+              <input
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                className="w-full rounded border border-goldPale px-3 py-2.5 text-sm outline-none focus:border-gold"
+              />
+            </div>
           </div>
+          <button
+            type="submit"
+            disabled={saving}
+            className="mt-3 w-full rounded bg-ink py-2.5 text-sm text-cream hover:bg-goldDark disabled:opacity-60"
+          >
+            {saving ? 'Guardando...' : 'Registrar abono'}
+          </button>
           {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
         </form>
       )}
@@ -129,7 +177,7 @@ export function SaleDetail({ sale }: { sale: Sale }) {
         </div>
       )}
 
-      <button onClick={handleDelete} className="text-xs text-red-600 underline">
+      <button onClick={handleDeleteSale} className="text-xs text-red-600 underline">
         Eliminar este registro de venta
       </button>
     </div>
