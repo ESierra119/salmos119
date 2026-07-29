@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AdminTopbar } from '@/components/AdminTopbar';
 import { formatCOP } from '@/lib/whatsapp';
+import { unitProfit, profitMargin, formatPercent } from '@/lib/pricing';
 import { DeleteProductButton } from '@/components/DeleteProductButton';
 import type { Product } from '@/types/product';
 
@@ -38,17 +39,24 @@ export default async function AdminDashboard() {
                 <th className="px-4 py-3">Producto</th>
                 <th className="px-4 py-3">Categoría</th>
                 <th className="px-4 py-3">Precio</th>
+                <th className="px-4 py-3">Utilidad</th>
+                <th className="px-4 py-3">Margen</th>
                 <th className="px-4 py-3">Stock</th>
                 <th className="px-4 py-3">Activo</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
-              {(products as Product[] | null)?.map((p) => (
+              {(products as Product[] | null)?.map((p) => {
+                const profit = unitProfit(p.price, p.cost_price, p.shipping_cost);
+                const margin = profitMargin(p.price, p.cost_price, p.shipping_cost);
+                return (
                 <tr key={p.id} className="border-b border-goldPale last:border-0">
                   <td className="px-4 py-3">{p.name}</td>
                   <td className="px-4 py-3 text-inkSoft">{p.categories?.name ?? '—'}</td>
                   <td className="px-4 py-3">{formatCOP(p.price)}</td>
+                  <td className={`px-4 py-3 ${profit >= 0 ? 'text-goldDark' : 'text-red-600'}`}>{formatCOP(profit)}</td>
+                  <td className={`px-4 py-3 ${profit >= 0 ? 'text-goldDark' : 'text-red-600'}`}>{formatPercent(margin)}</td>
                   <td className="px-4 py-3">{p.stock}</td>
                   <td className="px-4 py-3">
                     <span
@@ -68,10 +76,10 @@ export default async function AdminDashboard() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );})}
               {(!products || products.length === 0) && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-inkSoft">
+                  <td colSpan={8} className="px-4 py-10 text-center text-inkSoft">
                     Aún no has agregado productos.
                   </td>
                 </tr>

@@ -23,6 +23,8 @@ create table if not exists products (
   name text not null,
   description text,
   price numeric(12,2) not null default 0,
+  cost_price numeric(12,2) not null default 0,
+  shipping_cost numeric(12,2) not null default 0,
   category_id uuid references categories(id) on delete set null,
   image_url text,
   stock integer default 0,
@@ -56,6 +58,33 @@ create table if not exists product_images (
 
 create index if not exists idx_product_images_product_id on product_images(product_id);
 
+-- Registro de ventas (contado / crédito)
+create table if not exists sales (
+  id uuid primary key default gen_random_uuid(),
+  sale_date date not null default current_date,
+  customer_name text not null,
+  product_id uuid references products(id) on delete set null,
+  product_name_snapshot text not null,
+  quantity integer not null default 1,
+  unit_price numeric(12,2) not null,
+  unit_cost numeric(12,2) not null default 0,
+  payment_type text not null default 'contado' check (payment_type in ('contado', 'credito')),
+  credit_surcharge_rate numeric(6,4) not null default 0,
+  installments_count integer not null default 1,
+  paid_amount numeric(12,2) not null default 0,
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_sales_sale_date on sales(sale_date desc);
+create index if not exists idx_sales_product_id on sales(product_id);
+
+drop trigger if exists trg_sales_updated_at on sales;
+create trigger trg_sales_updated_at
+before update on sales
+for each row execute procedure set_updated_at();
+
 -- ============================================================
 -- Seguridad (Row Level Security)
 -- Cualquiera puede LEER productos activos (catálogo público).
@@ -84,6 +113,15 @@ create policy "Lectura pública de imágenes de producto"
 drop policy if exists "Admins pueden todo en imágenes de producto" on product_images;
 create policy "Admins pueden todo en imágenes de producto"
   on product_images for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+-- Ventas: solo administradores, nunca lectura pública (contiene costos y utilidades)
+alter table sales enable row level security;
+
+drop policy if exists "Solo admins acceden a ventas" on sales;
+create policy "Solo admins acceden a ventas"
+  on sales for all
   using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 

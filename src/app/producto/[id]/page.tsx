@@ -17,14 +17,14 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
 
   const { data: product } = await supabase
     .from('products')
-    .select('*, categories(id, name, slug)')
+    .select('id, name, description, price, image_url, stock, active, category_id, categories(id, name, slug)')
     .eq('id', params.id)
     .eq('active', true)
     .single();
 
   if (!product) notFound();
 
-  const p = product as Product;
+  const p = product as unknown as Product;
 
   const { data: extraImages } = await supabase
     .from('product_images')
@@ -42,21 +42,21 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   if (p.category_id) {
     const { data } = await supabase
       .from('products')
-      .select('*, categories(id, name, slug)')
+      .select('id, name, description, price, image_url, stock, active, category_id, categories(id, name, slug)')
       .eq('active', true)
       .eq('category_id', p.category_id)
       .neq('id', p.id)
       .limit(4);
-    related = (data as Product[]) ?? [];
+    related = (data as unknown as Product[]) ?? [];
   }
   if (related.length < 4) {
     const { data } = await supabase
       .from('products')
-      .select('*, categories(id, name, slug)')
+      .select('id, name, description, price, image_url, stock, active, category_id, categories(id, name, slug)')
       .eq('active', true)
       .neq('id', p.id)
       .limit(4 - related.length);
-    const extra = ((data as Product[]) ?? []).filter((r) => !related.some((x) => x.id === r.id));
+    const extra = ((data as unknown as Product[]) ?? []).filter((r) => !related.some((x) => x.id === r.id));
     related = [...related, ...extra];
   }
 

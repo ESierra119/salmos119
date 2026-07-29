@@ -16,6 +16,8 @@ export type Product = {
   name: string;
   description: string | null;
   price: number;
+  cost_price: number;
+  shipping_cost: number;
   category_id: string | null;
   image_url: string | null;
   stock: number;
@@ -23,6 +25,26 @@ export type Product = {
   created_at: string;
   updated_at: string;
   categories?: Category | null;
+};
+
+export type PaymentType = 'contado' | 'credito';
+
+export type Sale = {
+  id: string;
+  sale_date: string;
+  customer_name: string;
+  product_id: string | null;
+  product_name_snapshot: string;
+  quantity: number;
+  unit_price: number;
+  unit_cost: number;
+  payment_type: PaymentType;
+  credit_surcharge_rate: number;
+  installments_count: number;
+  paid_amount: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type CartItem = {

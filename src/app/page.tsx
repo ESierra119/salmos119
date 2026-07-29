@@ -22,7 +22,7 @@ export default async function HomePage({
 
   let query = supabase
     .from('products')
-    .select('*, categories(id, name, slug)')
+    .select('id, name, description, price, image_url, stock, active, category_id, categories(id, name, slug)')
     .eq('active', true)
     .order('created_at', { ascending: false });
 
@@ -102,7 +102,7 @@ export default async function HomePage({
 
         {products && products.length > 0 ? (
           <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-4 lg:gap-5.5">
-            {(products as Product[]).map((p) => (
+            {(products as unknown as Product[]).map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>

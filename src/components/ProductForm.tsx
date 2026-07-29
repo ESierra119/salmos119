@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { unitProfit, profitMargin, formatPercent } from '@/lib/pricing';
+import { formatCOP } from '@/lib/whatsapp';
 import type { Category, Product, ProductImage } from '@/types/product';
 
 export function ProductForm({
@@ -21,6 +23,8 @@ export function ProductForm({
   const [name, setName] = useState(product?.name ?? '');
   const [description, setDescription] = useState(product?.description ?? '');
   const [price, setPrice] = useState(product?.price?.toString() ?? '');
+  const [costPrice, setCostPrice] = useState(product?.cost_price?.toString() ?? '0');
+  const [shippingCost, setShippingCost] = useState(product?.shipping_cost?.toString() ?? '0');
   const [categoryId, setCategoryId] = useState(product?.category_id ?? categories[0]?.id ?? '');
   const [stock, setStock] = useState(product?.stock?.toString() ?? '0');
   const [active, setActive] = useState(product?.active ?? true);
@@ -30,6 +34,9 @@ export function ProductForm({
   const [uploadingExtra, setUploadingExtra] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const computedProfit = unitProfit(Number(price) || 0, Number(costPrice) || 0, Number(shippingCost) || 0);
+  const computedMargin = profitMargin(Number(price) || 0, Number(costPrice) || 0, Number(shippingCost) || 0);
 
   async function uploadFile(file: File) {
     const fileExt = file.name.split('.').pop();
@@ -92,6 +99,8 @@ export function ProductForm({
       name,
       description,
       price: Number(price),
+      cost_price: Number(costPrice),
+      shipping_cost: Number(shippingCost),
       category_id: categoryId || null,
       stock: Number(stock),
       active,
@@ -146,7 +155,7 @@ export function ProductForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="mb-1 block text-xs text-inkSoft">Precio (COP)</label>
+          <label className="mb-1 block text-xs text-inkSoft">Precio de venta (COP)</label>
           <input
             required
             type="number"
@@ -166,6 +175,46 @@ export function ProductForm({
             onChange={(e) => setStock(e.target.value)}
             className="w-full rounded border border-goldPale px-3 py-2.5 text-sm outline-none focus:border-gold"
           />
+        </div>
+      </div>
+
+      <div className="rounded border border-goldPale bg-creamDeep/50 p-4">
+        <p className="mb-3 text-xs uppercase tracking-wider text-inkSoft">Costos (solo visible aquí en el panel)</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="mb-1 block text-xs text-inkSoft">Costo proveedor (COP)</label>
+            <input
+              type="number"
+              min="0"
+              value={costPrice}
+              onChange={(e) => setCostPrice(e.target.value)}
+              className="w-full rounded border border-goldPale bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-inkSoft">Envío asignado (COP)</label>
+            <input
+              type="number"
+              min="0"
+              value={shippingCost}
+              onChange={(e) => setShippingCost(e.target.value)}
+              className="w-full rounded border border-goldPale bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex gap-6 text-sm">
+          <div>
+            <span className="text-xs text-inkSoft">Utilidad unitaria: </span>
+            <span className={`font-medium ${computedProfit >= 0 ? 'text-goldDark' : 'text-red-600'}`}>
+              {formatCOP(computedProfit)}
+            </span>
+          </div>
+          <div>
+            <span className="text-xs text-inkSoft">Margen: </span>
+            <span className={`font-medium ${computedProfit >= 0 ? 'text-goldDark' : 'text-red-600'}`}>
+              {formatPercent(computedMargin)}
+            </span>
+          </div>
         </div>
       </div>
 
