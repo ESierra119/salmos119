@@ -21,6 +21,7 @@ export type Product = {
   category_id: string | null;
   image_url: string | null;
   stock: number;
+  is_preorder: boolean;
   active: boolean;
   created_at: string;
   updated_at: string;

@@ -30,6 +30,13 @@ export function ProductCard({ product }: { product: Product }) {
             {product.categories.name}
           </span>
         )}
+        <span
+          className={`absolute right-2.5 top-2.5 rounded-full px-2.5 py-1 text-[9.5px] uppercase tracking-wider ${
+            product.is_preorder ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+          }`}
+        >
+          {product.is_preorder ? 'Sobre pedido' : 'Entrega inmediata'}
+        </span>
         {product.image_url ? (
           <Image
             src={product.image_url}

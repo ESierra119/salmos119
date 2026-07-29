@@ -27,6 +27,7 @@ export function ProductForm({
   const [shippingCost, setShippingCost] = useState(product?.shipping_cost?.toString() ?? '0');
   const [categoryId, setCategoryId] = useState(product?.category_id ?? categories[0]?.id ?? '');
   const [stock, setStock] = useState(product?.stock?.toString() ?? '0');
+  const [isPreorder, setIsPreorder] = useState(product?.is_preorder ?? false);
   const [active, setActive] = useState(product?.active ?? true);
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? '');
   const [extraImages, setExtraImages] = useState<ProductImage[]>(initialExtraImages);
@@ -103,6 +104,7 @@ export function ProductForm({
       shipping_cost: Number(shippingCost),
       category_id: categoryId || null,
       stock: Number(stock),
+      is_preorder: isPreorder,
       active,
       image_url: imageUrl || null,
     };
@@ -287,6 +289,24 @@ export function ProductForm({
             Guarda el producto primero — después de crearlo podrás volver a editarlo para agregar fotos adicionales.
           </p>
         )}
+      </div>
+
+      <div className="rounded border border-goldPale p-4">
+        <label className="flex items-start gap-2.5 text-sm">
+          <input
+            type="checkbox"
+            checked={isPreorder}
+            onChange={(e) => setIsPreorder(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block font-medium">Este producto es sobre pedido</span>
+            <span className="block text-xs text-inkSoft">
+              Márcalo si no lo tienes en stock inmediato y debe encargarse cuando el cliente lo pida.
+              Si lo dejas sin marcar, se muestra como "Entrega inmediata".
+            </span>
+          </span>
+        </label>
       </div>
 
       <label className="flex items-center gap-2 text-sm">

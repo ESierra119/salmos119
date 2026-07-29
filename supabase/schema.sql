@@ -28,6 +28,7 @@ create table if not exists products (
   category_id uuid references categories(id) on delete set null,
   image_url text,
   stock integer default 0,
+  is_preorder boolean not null default false,
   active boolean default true,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
