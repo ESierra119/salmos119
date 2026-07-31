@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import { CartDrawer } from '@/components/CartDrawer';
+import { CatalogSearch } from '@/components/CatalogSearch';
 import type { Category, Product } from '@/types/product';
 
 export const revalidate = 0;
@@ -11,7 +12,7 @@ export const revalidate = 0;
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: { categoria?: string };
+  searchParams: { categoria?: string; q?: string };
 }) {
   const supabase = createClient();
 
@@ -30,6 +31,11 @@ export default async function HomePage({
   if (activeSlug !== 'todos') {
     const cat = (categories as Category[] | null)?.find((c) => c.slug === activeSlug);
     if (cat) query = query.eq('category_id', cat.id);
+  }
+
+  const searchQuery = searchParams.q?.trim() ?? '';
+  if (searchQuery) {
+    query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
   }
 
   const { data: products } = await query;
@@ -78,6 +84,8 @@ export default async function HomePage({
           <p className="text-sm text-inkSoft">Explora por categoría o mira todo lo que tenemos para ti.</p>
         </div>
 
+        <CatalogSearch initialQuery={searchQuery} />
+
         <div className="mb-10 flex flex-wrap justify-center gap-2.5">
           <Link
             href="/"
@@ -105,6 +113,12 @@ export default async function HomePage({
             {(products as unknown as Product[]).map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
+          </div>
+        ) : searchQuery ? (
+          <div className="rounded border border-dashed border-goldPale py-16 text-center text-inkSoft">
+            No encontramos productos que coincidan con &ldquo;{searchQuery}&rdquo;.
+            <br />
+            Intenta con otra palabra o explora las categorías.
           </div>
         ) : (
           <div className="rounded border border-dashed border-goldPale py-16 text-center text-inkSoft">
