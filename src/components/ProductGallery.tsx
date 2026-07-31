@@ -20,8 +20,15 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
 
   return (
     <div className="w-full max-w-sm">
-      <div className="relative aspect-[4/5] w-full overflow-hidden rounded bg-white shadow-lg">
-        <Image src={images[active]} alt={alt} fill className="object-contain p-3" sizes="400px" priority />
+      <div className="group relative aspect-[4/5] w-full overflow-hidden rounded bg-white shadow-lg">
+        <Image
+          src={images[active]}
+          alt={alt}
+          fill
+          className="object-contain p-3 transition-transform duration-300 group-hover:scale-110"
+          sizes="400px"
+          priority
+        />
       </div>
 
       {images.length > 1 && (

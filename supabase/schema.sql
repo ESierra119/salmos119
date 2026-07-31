@@ -29,6 +29,7 @@ create table if not exists products (
   image_url text,
   stock integer default 0,
   is_preorder boolean not null default false,
+  internal_code text unique,
   active boolean default true,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -47,6 +48,46 @@ drop trigger if exists trg_products_updated_at on products;
 create trigger trg_products_updated_at
 before update on products
 for each row execute procedure set_updated_at();
+
+-- Código interno automático: TS + año(2) + mes(2) + consecutivo(3), ej. TS2607001
+create or replace function generate_internal_code()
+returns trigger as $$
+declare
+  prefix text;
+  next_num int;
+begin
+  if new.internal_code is null or new.internal_code = '' then
+    prefix := 'TS' || to_char(now(), 'YYMM');
+    select coalesce(max(substring(internal_code from 7 for 3)::int), 0) + 1
+      into next_num
+      from products
+      where internal_code like prefix || '%';
+    new.internal_code := prefix || lpad(next_num::text, 3, '0');
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_generate_internal_code on products;
+create trigger trg_generate_internal_code
+before insert on products
+for each row execute procedure generate_internal_code();
+
+-- Sobre pedido automático cuando el stock llega a 0
+create or replace function auto_preorder_on_zero_stock()
+returns trigger as $$
+begin
+  if new.stock <= 0 then
+    new.is_preorder := true;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_auto_preorder on products;
+create trigger trg_auto_preorder
+before insert or update on products
+for each row execute procedure auto_preorder_on_zero_stock();
 
 -- Imágenes adicionales por producto (la foto principal sigue viviendo en products.image_url)
 create table if not exists product_images (
@@ -118,6 +159,39 @@ drop trigger if exists trg_sync_paid_amount on sale_payments;
 create trigger trg_sync_paid_amount
 after insert or update or delete on sale_payments
 for each row execute procedure sync_sale_paid_amount();
+
+-- El stock del producto se descuenta automáticamente al registrar una venta
+-- (y se restituye si se borra o se corrige la venta)
+create or replace function adjust_stock_on_sale()
+returns trigger as $$
+begin
+  if TG_OP = 'INSERT' then
+    if new.product_id is not null then
+      update products set stock = greatest(stock - new.quantity, 0) where id = new.product_id;
+    end if;
+    return new;
+  elsif TG_OP = 'DELETE' then
+    if old.product_id is not null then
+      update products set stock = stock + old.quantity where id = old.product_id;
+    end if;
+    return old;
+  elsif TG_OP = 'UPDATE' then
+    if old.product_id is not null then
+      update products set stock = stock + old.quantity where id = old.product_id;
+    end if;
+    if new.product_id is not null then
+      update products set stock = greatest(stock - new.quantity, 0) where id = new.product_id;
+    end if;
+    return new;
+  end if;
+  return null;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_adjust_stock_on_sale on sales;
+create trigger trg_adjust_stock_on_sale
+after insert or update or delete on sales
+for each row execute procedure adjust_stock_on_sale();
 
 -- ============================================================
 -- Seguridad (Row Level Security)

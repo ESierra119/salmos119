@@ -17,7 +17,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
 
   const { data: product } = await supabase
     .from('products')
-    .select('id, name, description, price, image_url, stock, is_preorder, active, category_id, categories(id, name, slug)')
+    .select('id, name, description, price, image_url, stock, is_preorder, internal_code, active, category_id, categories(id, name, slug)')
     .eq('id', params.id)
     .eq('active', true)
     .single();
@@ -42,7 +42,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   if (p.category_id) {
     const { data } = await supabase
       .from('products')
-      .select('id, name, description, price, image_url, stock, is_preorder, active, category_id, categories(id, name, slug)')
+      .select('id, name, description, price, image_url, stock, is_preorder, internal_code, active, category_id, categories(id, name, slug)')
       .eq('active', true)
       .eq('category_id', p.category_id)
       .neq('id', p.id)
@@ -52,7 +52,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   if (related.length < 4) {
     const { data } = await supabase
       .from('products')
-      .select('id, name, description, price, image_url, stock, is_preorder, active, category_id, categories(id, name, slug)')
+      .select('id, name, description, price, image_url, stock, is_preorder, internal_code, active, category_id, categories(id, name, slug)')
       .eq('active', true)
       .neq('id', p.id)
       .limit(4 - related.length);
@@ -86,7 +86,10 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           {p.categories?.name && (
             <div className="mb-2 text-[11px] uppercase tracking-[0.2em] text-goldDark">{p.categories.name}</div>
           )}
-          <h1 className="mb-3 font-display text-3xl leading-tight md:text-4xl">{p.name}</h1>
+          <h1 className="mb-1 font-display text-3xl leading-tight md:text-4xl">{p.name}</h1>
+          {p.internal_code && (
+            <p className="mb-3 font-mono text-xs text-inkSoft/70">Código: {p.internal_code}</p>
+          )}
 
           <div
             className={`mb-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${

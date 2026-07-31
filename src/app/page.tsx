@@ -22,7 +22,7 @@ export default async function HomePage({
 
   let query = supabase
     .from('products')
-    .select('id, name, description, price, image_url, stock, is_preorder, active, category_id, categories(id, name, slug)')
+    .select('id, name, description, price, image_url, stock, is_preorder, internal_code, active, category_id, categories(id, name, slug)')
     .eq('active', true)
     .order('created_at', { ascending: false });
 

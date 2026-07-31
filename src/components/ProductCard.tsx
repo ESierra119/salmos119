@@ -22,7 +22,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/producto/${product.id}`}
-      className="flex flex-col overflow-hidden rounded border border-goldPale bg-white transition hover:-translate-y-1 hover:shadow-lg"
+      className="group flex flex-col overflow-hidden rounded border border-goldPale bg-white transition hover:-translate-y-1 hover:shadow-lg"
     >
       <div className="relative flex h-[200px] items-center justify-center overflow-hidden bg-creamDeep">
         {product.categories?.name && (
@@ -42,7 +42,7 @@ export function ProductCard({ product }: { product: Product }) {
             src={product.image_url}
             alt={product.name}
             fill
-            className="object-contain p-2"
+            className="object-contain p-2 transition-transform duration-300 group-hover:scale-110"
             sizes="(max-width: 700px) 50vw, 25vw"
           />
         ) : (
@@ -56,6 +56,9 @@ export function ProductCard({ product }: { product: Product }) {
 
       <div className="flex flex-1 flex-col gap-1.5 p-4">
         <h3 className="min-h-[44px] font-display text-[17px] leading-snug">{product.name}</h3>
+        {product.internal_code && (
+          <p className="-mt-1 font-mono text-[10px] text-inkSoft/70">Cód. {product.internal_code}</p>
+        )}
         {product.description && (
           <p className="line-clamp-3 text-xs leading-relaxed text-inkSoft">
             {product.description}{' '}

@@ -133,6 +133,12 @@ export function ProductForm({
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-5 px-6 py-8">
+      {product?.internal_code && (
+        <div className="rounded border border-goldPale bg-creamDeep/40 px-3 py-2 font-mono text-xs text-inkSoft">
+          Código interno: {product.internal_code}
+        </div>
+      )}
+
       <div>
         <label className="mb-1 block text-xs text-inkSoft">Nombre del producto</label>
         <input
@@ -303,7 +309,8 @@ export function ProductForm({
             <span className="block font-medium">Este producto es sobre pedido</span>
             <span className="block text-xs text-inkSoft">
               Márcalo si no lo tienes en stock inmediato y debe encargarse cuando el cliente lo pida.
-              Si lo dejas sin marcar, se muestra como "Entrega inmediata".
+              Si lo dejas sin marcar, se muestra como "Entrega inmediata". Se activa solo cuando el
+              stock llega a 0, aunque puedes activarlo manualmente antes si ya sabes que se agotará.
             </span>
           </span>
         </label>
