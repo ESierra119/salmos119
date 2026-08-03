@@ -4,18 +4,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { formatCOP } from '@/lib/whatsapp';
-import {
-  saleSubtotal,
-  saleCreditSurcharge,
-  saleTotalToPay,
-  saleBalance,
-  saleStatus,
-  saleTotalProfit,
-  suggestedInstallment,
-} from '@/lib/pricing';
-import type { Sale, SalePayment } from '@/types/product';
+import { saleTotals } from '@/lib/pricing';
+import type { Sale, SaleItem, SalePayment } from '@/types/product';
 
-export function SaleDetail({ sale, payments }: { sale: Sale; payments: SalePayment[] }) {
+export function SaleDetail({
+  sale,
+  items,
+  payments,
+}: {
+  sale: Sale;
+  items: SaleItem[];
+  payments: SalePayment[];
+}) {
   const router = useRouter();
   const supabase = createClient();
   const [amount, setAmount] = useState('');
@@ -23,12 +23,7 @@ export function SaleDetail({ sale, payments }: { sale: Sale; payments: SalePayme
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const subtotal = saleSubtotal(sale);
-  const surcharge = saleCreditSurcharge(sale);
-  const total = saleTotalToPay(sale);
-  const balance = saleBalance(sale);
-  const status = saleStatus(sale);
-  const profit = saleTotalProfit(sale);
+  const { subtotal, surcharge, total, balance, status, profit, installment } = saleTotals(sale, items);
 
   async function handleAddPayment(e: React.FormEvent) {
     e.preventDefault();
@@ -58,7 +53,7 @@ export function SaleDetail({ sale, payments }: { sale: Sale; payments: SalePayme
   }
 
   async function handleDeleteSale() {
-    if (!confirm('¿Eliminar este registro de venta? Esta acción no se puede deshacer.')) return;
+    if (!confirm('¿Eliminar este pedido completo? Esta acción no se puede deshacer.')) return;
     await supabase.from('sales').delete().eq('id', sale.id);
     router.push('/admin/ventas');
     router.refresh();
@@ -69,9 +64,10 @@ export function SaleDetail({ sale, payments }: { sale: Sale; payments: SalePayme
       <div className="rounded border border-goldPale bg-white p-5">
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h2 className="font-display text-xl">{sale.product_name_snapshot}</h2>
+            <h2 className="font-display text-xl">{sale.customer_name}</h2>
             <p className="text-sm text-inkSoft">
-              {sale.customer_name} &middot; {new Date(sale.sale_date).toLocaleDateString('es-CO')}
+              {sale.customer_phone && <>{sale.customer_phone} &middot; </>}
+              {new Date(sale.sale_date).toLocaleDateString('es-CO')}
             </p>
           </div>
           <span
@@ -87,22 +83,32 @@ export function SaleDetail({ sale, payments }: { sale: Sale; payments: SalePayme
           </span>
         </div>
 
+        {/* Líneas del pedido */}
+        <div className="mb-4 space-y-2 border-b border-goldPale pb-4">
+          {items.map((i) => (
+            <div key={i.id} className="flex items-center justify-between text-sm">
+              <span className="flex-1">
+                {i.product_name_snapshot} <span className="text-inkSoft">x{i.quantity}</span>
+              </span>
+              <span>{formatCOP(i.unit_price * i.quantity)}</span>
+            </div>
+          ))}
+        </div>
+
         <div className="space-y-1.5 text-sm">
-          <Row label="Cantidad" value={sale.quantity.toString()} />
-          <Row label="Precio unitario" value={formatCOP(sale.unit_price)} />
           <Row label="Subtotal" value={formatCOP(subtotal)} />
           <Row label="Tipo de pago" value={sale.payment_type === 'credito' ? 'Crédito' : 'Contado'} />
           {sale.payment_type === 'credito' && (
             <>
               <Row label="Recargo por crédito" value={formatCOP(surcharge)} />
               <Row label="Cuotas" value={sale.installments_count.toString()} />
-              <Row label="Cuota sugerida" value={formatCOP(suggestedInstallment(sale))} />
+              <Row label="Cuota sugerida" value={formatCOP(installment)} />
             </>
           )}
           <Row label="Total a pagar" value={formatCOP(total)} strong />
           <Row label="Abonado hasta hoy" value={formatCOP(sale.paid_amount)} />
           <Row label="Saldo" value={formatCOP(Math.max(0, balance))} strong />
-          <Row label="Utilidad de esta venta" value={formatCOP(profit)} highlight />
+          <Row label="Utilidad de este pedido" value={formatCOP(profit)} highlight />
         </div>
       </div>
 
@@ -178,7 +184,7 @@ export function SaleDetail({ sale, payments }: { sale: Sale; payments: SalePayme
       )}
 
       <button onClick={handleDeleteSale} className="text-xs text-red-600 underline">
-        Eliminar este registro de venta
+        Eliminar este pedido completo
       </button>
     </div>
   );

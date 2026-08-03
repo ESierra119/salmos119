@@ -40,17 +40,23 @@ export type Customer = {
   updated_at: string;
 };
 
+export type SaleItem = {
+  id: string;
+  sale_id: string;
+  product_id: string | null;
+  product_name_snapshot: string;
+  quantity: number;
+  unit_price: number;
+  unit_cost: number;
+  created_at: string;
+};
+
 export type Sale = {
   id: string;
   sale_date: string;
   customer_name: string;
   customer_phone: string | null;
   customer_id: string | null;
-  product_id: string | null;
-  product_name_snapshot: string;
-  quantity: number;
-  unit_price: number;
-  unit_cost: number;
   payment_type: PaymentType;
   credit_surcharge_rate: number;
   installments_count: number;
@@ -58,6 +64,7 @@ export type Sale = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  sale_items?: SaleItem[];
 };
 
 export type SalePayment = {

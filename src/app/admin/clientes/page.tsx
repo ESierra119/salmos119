@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { AdminTopbar } from '@/components/AdminTopbar';
 import { formatCOP } from '@/lib/whatsapp';
-import { saleSubtotal, saleCreditSurcharge } from '@/lib/pricing';
+import { saleTotals } from '@/lib/pricing';
 import type { Customer, Sale } from '@/types/product';
 
 export const revalidate = 0;
@@ -11,16 +11,16 @@ export default async function ClientesPage() {
 
   const [{ data: customers }, { data: sales }] = await Promise.all([
     supabase.from('customers').select('*').order('name'),
-    supabase.from('sales').select('customer_id, quantity, unit_price, payment_type, credit_surcharge_rate'),
+    supabase.from('sales').select('customer_id, payment_type, credit_surcharge_rate, installments_count, paid_amount, sale_items(quantity, unit_price, unit_cost)'),
   ]);
 
   const allCustomers = (customers as Customer[]) ?? [];
-  const allSales = (sales as Pick<Sale, 'customer_id' | 'quantity' | 'unit_price' | 'payment_type' | 'credit_surcharge_rate'>[]) ?? [];
+  const allSales = (sales as unknown as Sale[]) ?? [];
 
   const statsByCustomer = new Map<string, { count: number; total: number }>();
   allSales.forEach((s) => {
     if (!s.customer_id) return;
-    const total = saleSubtotal(s) + saleCreditSurcharge(s);
+    const { total } = saleTotals(s, s.sale_items ?? []);
     const current = statsByCustomer.get(s.customer_id) ?? { count: 0, total: 0 };
     statsByCustomer.set(s.customer_id, { count: current.count + 1, total: current.total + total });
   });

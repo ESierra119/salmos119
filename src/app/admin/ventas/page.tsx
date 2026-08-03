@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AdminTopbar } from '@/components/AdminTopbar';
 import { formatCOP } from '@/lib/whatsapp';
-import { saleSubtotal, saleCreditSurcharge, saleBalance, saleStatus, saleTotalProfit } from '@/lib/pricing';
+import { saleTotals } from '@/lib/pricing';
 import type { Product, Sale } from '@/types/product';
 
 export const revalidate = 0;
@@ -11,23 +11,30 @@ export default async function VentasPage() {
   const supabase = createClient();
 
   const [{ data: sales }, { data: products }] = await Promise.all([
-    supabase.from('sales').select('*').order('sale_date', { ascending: false }),
+    supabase
+      .from('sales')
+      .select('*, sale_items(*)')
+      .order('sale_date', { ascending: false }),
     supabase.from('products').select('stock, cost_price, shipping_cost'),
   ]);
 
-  const allSales = (sales as Sale[]) ?? [];
+  const allSales = ((sales as unknown as Sale[]) ?? []).map((s) => ({
+    sale: s,
+    items: s.sale_items ?? [],
+    totals: saleTotals(s, s.sale_items ?? []),
+  }));
 
   const ventasContado = allSales
-    .filter((s) => s.payment_type === 'contado')
-    .reduce((sum, s) => sum + saleSubtotal(s), 0);
+    .filter((x) => x.sale.payment_type === 'contado')
+    .reduce((sum, x) => sum + x.totals.subtotal, 0);
 
   const ventasCredito = allSales
-    .filter((s) => s.payment_type === 'credito')
-    .reduce((sum, s) => sum + saleSubtotal(s), 0);
+    .filter((x) => x.sale.payment_type === 'credito')
+    .reduce((sum, x) => sum + x.totals.subtotal, 0);
 
-  const recargosCobrados = allSales.reduce((sum, s) => sum + saleCreditSurcharge(s), 0);
-  const utilidadTotal = allSales.reduce((sum, s) => sum + saleTotalProfit(s), 0);
-  const saldoPendiente = allSales.reduce((sum, s) => sum + Math.max(0, saleBalance(s)), 0);
+  const recargosCobrados = allSales.reduce((sum, x) => sum + x.totals.surcharge, 0);
+  const utilidadTotal = allSales.reduce((sum, x) => sum + x.totals.profit, 0);
+  const saldoPendiente = allSales.reduce((sum, x) => sum + Math.max(0, x.totals.balance), 0);
 
   const inventarioAlCosto = ((products as Pick<Product, 'stock' | 'cost_price' | 'shipping_cost'>[]) ?? []).reduce(
     (sum, p) => sum + p.stock * (p.cost_price + p.shipping_cost),
@@ -51,7 +58,7 @@ export default async function VentasPage() {
 
         <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-inkSoft">
-            {allSales.length} venta{allSales.length === 1 ? '' : 's'} registrada{allSales.length === 1 ? '' : 's'}
+            {allSales.length} pedido{allSales.length === 1 ? '' : 's'} registrado{allSales.length === 1 ? '' : 's'}
           </p>
           <Link
             href="/admin/ventas/nueva"
@@ -67,8 +74,7 @@ export default async function VentasPage() {
               <tr className="border-b border-goldPale bg-creamDeep text-left text-xs uppercase tracking-wider text-inkSoft">
                 <th className="px-4 py-3">Fecha</th>
                 <th className="px-4 py-3">Cliente</th>
-                <th className="px-4 py-3">Producto</th>
-                <th className="px-4 py-3">Cant.</th>
+                <th className="px-4 py-3">Productos</th>
                 <th className="px-4 py-3">Tipo</th>
                 <th className="px-4 py-3">Total a pagar</th>
                 <th className="px-4 py-3">Abonado</th>
@@ -78,44 +84,42 @@ export default async function VentasPage() {
               </tr>
             </thead>
             <tbody>
-              {allSales.map((s) => {
-                const status = saleStatus(s);
-                const balance = saleBalance(s);
-                const total = saleSubtotal(s) + saleCreditSurcharge(s);
-                return (
-                  <tr key={s.id} className="border-b border-goldPale last:border-0">
-                    <td className="px-4 py-3">{new Date(s.sale_date).toLocaleDateString('es-CO')}</td>
-                    <td className="px-4 py-3">{s.customer_name}</td>
-                    <td className="px-4 py-3">{s.product_name_snapshot}</td>
-                    <td className="px-4 py-3">{s.quantity}</td>
-                    <td className="px-4 py-3 capitalize">{s.payment_type}</td>
-                    <td className="px-4 py-3">{formatCOP(total)}</td>
-                    <td className="px-4 py-3">{formatCOP(s.paid_amount)}</td>
-                    <td className="px-4 py-3">{formatCOP(Math.max(0, balance))}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs ${
-                          status === 'Pagado'
-                            ? 'bg-green-100 text-green-700'
-                            : status === 'Parcial'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/admin/ventas/${s.id}`} className="text-xs text-goldDark underline">
-                        Ver / Abonar
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
+              {allSales.map(({ sale: s, items, totals }) => (
+                <tr key={s.id} className="border-b border-goldPale last:border-0">
+                  <td className="px-4 py-3">{new Date(s.sale_date).toLocaleDateString('es-CO')}</td>
+                  <td className="px-4 py-3">{s.customer_name}</td>
+                  <td className="px-4 py-3">
+                    {items.length === 1
+                      ? items[0].product_name_snapshot
+                      : `${items.length} productos`}
+                  </td>
+                  <td className="px-4 py-3 capitalize">{s.payment_type}</td>
+                  <td className="px-4 py-3">{formatCOP(totals.total)}</td>
+                  <td className="px-4 py-3">{formatCOP(s.paid_amount)}</td>
+                  <td className="px-4 py-3">{formatCOP(Math.max(0, totals.balance))}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs ${
+                        totals.status === 'Pagado'
+                          ? 'bg-green-100 text-green-700'
+                          : totals.status === 'Parcial'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-red-100 text-red-700'
+                      }`}
+                    >
+                      {totals.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link href={`/admin/ventas/${s.id}`} className="text-xs text-goldDark underline">
+                      Ver / Abonar
+                    </Link>
+                  </td>
+                </tr>
+              ))}
               {allSales.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-10 text-center text-inkSoft">
+                  <td colSpan={9} className="px-4 py-10 text-center text-inkSoft">
                     Aún no has registrado ninguna venta.
                   </td>
                 </tr>

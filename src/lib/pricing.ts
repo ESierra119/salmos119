@@ -1,4 +1,4 @@
-import type { Sale } from '@/types/product';
+import type { PaymentType, Sale, SaleItem } from '@/types/product';
 
 export function unitTotalCost(costPrice: number, shippingCost: number) {
   return costPrice + shippingCost;
@@ -17,41 +17,53 @@ export function formatPercent(value: number) {
   return (value * 100).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + '%';
 }
 
-// ---------- Cálculos de una venta individual ----------
+// ---------- Cálculos de una venta (pedido con varias líneas de producto) ----------
 
-export function saleSubtotal(sale: Pick<Sale, 'quantity' | 'unit_price'>) {
-  return sale.quantity * sale.unit_price;
+type LineLike = Pick<SaleItem, 'quantity' | 'unit_price'>;
+type LineWithCost = Pick<SaleItem, 'quantity' | 'unit_price' | 'unit_cost'>;
+type SaleHeader = Pick<Sale, 'payment_type' | 'credit_surcharge_rate' | 'installments_count' | 'paid_amount'>;
+
+export function itemsSubtotal(items: LineLike[]) {
+  return items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
 }
 
-export function saleCreditSurcharge(sale: Pick<Sale, 'quantity' | 'unit_price' | 'payment_type' | 'credit_surcharge_rate'>) {
-  if (sale.payment_type !== 'credito') return 0;
-  return saleSubtotal(sale) * sale.credit_surcharge_rate;
+export function itemsTotalProfit(items: LineWithCost[]) {
+  return items.reduce((sum, i) => sum + i.quantity * (i.unit_price - i.unit_cost), 0);
 }
 
-export function saleTotalToPay(sale: Pick<Sale, 'quantity' | 'unit_price' | 'payment_type' | 'credit_surcharge_rate'>) {
-  return saleSubtotal(sale) + saleCreditSurcharge(sale);
+export function saleCreditSurcharge(subtotal: number, paymentType: PaymentType, rate: number) {
+  if (paymentType !== 'credito') return 0;
+  return subtotal * rate;
 }
 
-export function saleBalance(sale: Pick<Sale, 'quantity' | 'unit_price' | 'payment_type' | 'credit_surcharge_rate' | 'paid_amount'>) {
-  return saleTotalToPay(sale) - sale.paid_amount;
+export function saleTotalToPay(subtotal: number, surcharge: number) {
+  return subtotal + surcharge;
 }
 
-export function saleStatus(sale: Pick<Sale, 'quantity' | 'unit_price' | 'payment_type' | 'credit_surcharge_rate' | 'paid_amount'>): 'Pagado' | 'Parcial' | 'Pendiente' {
-  const balance = saleBalance(sale);
+export function saleBalance(total: number, paidAmount: number) {
+  return total - paidAmount;
+}
+
+export function saleStatus(total: number, paidAmount: number): 'Pagado' | 'Parcial' | 'Pendiente' {
+  const balance = saleBalance(total, paidAmount);
   if (balance <= 0) return 'Pagado';
-  if (sale.paid_amount > 0) return 'Parcial';
+  if (paidAmount > 0) return 'Parcial';
   return 'Pendiente';
 }
 
-export function saleUnitProfit(sale: Pick<Sale, 'unit_price' | 'unit_cost'>) {
-  return sale.unit_price - sale.unit_cost;
+export function suggestedInstallment(total: number, installmentsCount: number) {
+  if (installmentsCount <= 0) return total;
+  return total / installmentsCount;
 }
 
-export function saleTotalProfit(sale: Pick<Sale, 'quantity' | 'unit_price' | 'unit_cost'>) {
-  return sale.quantity * saleUnitProfit(sale);
-}
-
-export function suggestedInstallment(sale: Pick<Sale, 'quantity' | 'unit_price' | 'payment_type' | 'credit_surcharge_rate' | 'installments_count'>) {
-  if (sale.installments_count <= 0) return saleTotalToPay(sale);
-  return saleTotalToPay(sale) / sale.installments_count;
+// Atajo para cuando ya tienes el encabezado + sus líneas juntos (ej. sale.sale_items)
+export function saleTotals(sale: SaleHeader, items: LineWithCost[]) {
+  const subtotal = itemsSubtotal(items);
+  const surcharge = saleCreditSurcharge(subtotal, sale.payment_type, sale.credit_surcharge_rate);
+  const total = saleTotalToPay(subtotal, surcharge);
+  const balance = saleBalance(total, sale.paid_amount);
+  const status = saleStatus(total, sale.paid_amount);
+  const profit = itemsTotalProfit(items);
+  const installment = suggestedInstallment(total, sale.installments_count);
+  return { subtotal, surcharge, total, balance, status, profit, installment };
 }

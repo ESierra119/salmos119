@@ -100,16 +100,12 @@ create table if not exists product_images (
 
 create index if not exists idx_product_images_product_id on product_images(product_id);
 
--- Registro de ventas (contado / crédito)
+-- Ventas: cada venta es un pedido (encabezado). Los productos que incluye
+-- viven en sale_items (una fila por cada producto del pedido).
 create table if not exists sales (
   id uuid primary key default gen_random_uuid(),
   sale_date date not null default current_date,
   customer_name text not null,
-  product_id uuid references products(id) on delete set null,
-  product_name_snapshot text not null,
-  quantity integer not null default 1,
-  unit_price numeric(12,2) not null,
-  unit_cost numeric(12,2) not null default 0,
   payment_type text not null default 'contado' check (payment_type in ('contado', 'credito')),
   credit_surcharge_rate numeric(6,4) not null default 0,
   installments_count integer not null default 1,
@@ -120,7 +116,6 @@ create table if not exists sales (
 );
 
 create index if not exists idx_sales_sale_date on sales(sale_date desc);
-create index if not exists idx_sales_product_id on sales(product_id);
 
 -- Clientes (nombre + teléfono), reutilizable entre ventas
 create table if not exists customers (
@@ -146,6 +141,21 @@ drop trigger if exists trg_sales_updated_at on sales;
 create trigger trg_sales_updated_at
 before update on sales
 for each row execute procedure set_updated_at();
+
+-- Líneas de producto de cada venta (una venta puede tener varios productos)
+create table if not exists sale_items (
+  id uuid primary key default gen_random_uuid(),
+  sale_id uuid not null references sales(id) on delete cascade,
+  product_id uuid references products(id) on delete set null,
+  product_name_snapshot text not null,
+  quantity integer not null default 1,
+  unit_price numeric(12,2) not null default 0,
+  unit_cost numeric(12,2) not null default 0,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_sale_items_sale_id on sale_items(sale_id);
+create index if not exists idx_sale_items_product_id on sale_items(product_id);
 
 -- Historial de abonos (con fecha) por cada venta
 create table if not exists sale_payments (
@@ -180,9 +190,9 @@ create trigger trg_sync_paid_amount
 after insert or update or delete on sale_payments
 for each row execute procedure sync_sale_paid_amount();
 
--- El stock del producto se descuenta automáticamente al registrar una venta
--- (y se restituye si se borra o se corrige la venta)
-create or replace function adjust_stock_on_sale()
+-- El stock del producto se descuenta automáticamente al agregar una línea de venta
+-- (y se restituye si se borra o se corrige)
+create or replace function adjust_stock_on_sale_item()
 returns trigger as $$
 begin
   if TG_OP = 'INSERT' then
@@ -208,10 +218,10 @@ begin
 end;
 $$ language plpgsql;
 
-drop trigger if exists trg_adjust_stock_on_sale on sales;
-create trigger trg_adjust_stock_on_sale
-after insert or update or delete on sales
-for each row execute procedure adjust_stock_on_sale();
+drop trigger if exists trg_adjust_stock_on_sale_item on sale_items;
+create trigger trg_adjust_stock_on_sale_item
+after insert or update or delete on sale_items
+for each row execute procedure adjust_stock_on_sale_item();
 
 -- ============================================================
 -- Seguridad (Row Level Security)
@@ -250,6 +260,14 @@ alter table sales enable row level security;
 drop policy if exists "Solo admins acceden a ventas" on sales;
 create policy "Solo admins acceden a ventas"
   on sales for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+alter table sale_items enable row level security;
+
+drop policy if exists "Solo admins acceden a items de venta" on sale_items;
+create policy "Solo admins acceden a items de venta"
+  on sale_items for all
   using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 
