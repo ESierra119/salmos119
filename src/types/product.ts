@@ -31,10 +31,21 @@ export type Product = {
 
 export type PaymentType = 'contado' | 'credito';
 
+export type Customer = {
+  id: string;
+  name: string;
+  phone: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Sale = {
   id: string;
   sale_date: string;
   customer_name: string;
+  customer_phone: string | null;
+  customer_id: string | null;
   product_id: string | null;
   product_name_snapshot: string;
   quantity: number;

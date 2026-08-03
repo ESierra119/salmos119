@@ -5,14 +5,18 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { formatCOP } from '@/lib/whatsapp';
 import { saleSubtotal, saleCreditSurcharge, saleTotalToPay, suggestedInstallment } from '@/lib/pricing';
-import type { Product, PaymentType } from '@/types/product';
+import { ProductCombobox } from '@/components/ProductCombobox';
+import { CustomerPicker } from '@/components/CustomerPicker';
+import type { Product, Customer, PaymentType } from '@/types/product';
 
-export function NewSaleForm({ products }: { products: Product[] }) {
+export function NewSaleForm({ products, customers }: { products: Product[]; customers: Customer[] }) {
   const router = useRouter();
   const supabase = createClient();
 
-  const [productId, setProductId] = useState(products[0]?.id ?? '');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(products[0] ?? null);
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
   const [quantity, setQuantity] = useState('1');
   const [unitPrice, setUnitPrice] = useState(products[0]?.price?.toString() ?? '0');
@@ -22,12 +26,9 @@ export function NewSaleForm({ products }: { products: Product[] }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedProduct = products.find((p) => p.id === productId);
-
-  function handleProductChange(id: string) {
-    setProductId(id);
-    const p = products.find((pr) => pr.id === id);
-    if (p) setUnitPrice(p.price.toString());
+  function handleProductSelect(p: Product) {
+    setSelectedProduct(p);
+    setUnitPrice(p.price.toString());
   }
 
   const preview = useMemo(() => {
@@ -46,36 +47,71 @@ export function NewSaleForm({ products }: { products: Product[] }) {
     };
   }, [quantity, unitPrice, paymentType, surchargeRate, installments]);
 
+  async function resolveCustomerId(): Promise<string | null> {
+    const trimmedPhone = customerPhone.trim();
+
+    if (selectedCustomer) {
+      if (trimmedPhone && trimmedPhone !== (selectedCustomer.phone ?? '')) {
+        await supabase.from('customers').update({ phone: trimmedPhone }).eq('id', selectedCustomer.id);
+      }
+      return selectedCustomer.id;
+    }
+
+    // Si el teléfono coincide con un cliente ya existente, lo reutilizamos en vez de duplicar.
+    if (trimmedPhone) {
+      const { data: existing } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('phone', trimmedPhone)
+        .maybeSingle();
+      if (existing) return existing.id;
+    }
+
+    const { data: created, error: createError } = await supabase
+      .from('customers')
+      .insert({ name: customerName.trim(), phone: trimmedPhone || null })
+      .select()
+      .single();
+
+    if (createError) throw createError;
+    return created.id;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedProduct) return;
     setSaving(true);
     setError(null);
 
-    const payload = {
-      sale_date: saleDate,
-      customer_name: customerName,
-      product_id: selectedProduct.id,
-      product_name_snapshot: selectedProduct.name,
-      quantity: Number(quantity),
-      unit_price: Number(unitPrice),
-      unit_cost: selectedProduct.cost_price + selectedProduct.shipping_cost,
-      payment_type: paymentType,
-      credit_surcharge_rate: paymentType === 'credito' ? Number(surchargeRate) / 100 : 0,
-      installments_count: paymentType === 'credito' ? Number(installments) : 1,
-      paid_amount: 0,
-    };
+    try {
+      const customerId = await resolveCustomerId();
 
-    const { error } = await supabase.from('sales').insert(payload);
-    setSaving(false);
+      const payload = {
+        sale_date: saleDate,
+        customer_name: customerName.trim(),
+        customer_phone: customerPhone.trim() || null,
+        customer_id: customerId,
+        product_id: selectedProduct.id,
+        product_name_snapshot: selectedProduct.name,
+        quantity: Number(quantity),
+        unit_price: Number(unitPrice),
+        unit_cost: selectedProduct.cost_price + selectedProduct.shipping_cost,
+        payment_type: paymentType,
+        credit_surcharge_rate: paymentType === 'credito' ? Number(surchargeRate) / 100 : 0,
+        installments_count: paymentType === 'credito' ? Number(installments) : 1,
+        paid_amount: 0,
+      };
 
-    if (error) {
-      setError('No se pudo guardar: ' + error.message);
-      return;
+      const { error: saleError } = await supabase.from('sales').insert(payload);
+      if (saleError) throw saleError;
+
+      router.push('/admin/ventas');
+      router.refresh();
+    } catch (err) {
+      setError('No se pudo guardar: ' + (err as Error).message);
+    } finally {
+      setSaving(false);
     }
-
-    router.push('/admin/ventas');
-    router.refresh();
   }
 
   if (products.length === 0) {
@@ -90,42 +126,29 @@ export function NewSaleForm({ products }: { products: Product[] }) {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-xl space-y-5 px-6 py-8">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="mb-1 block text-xs text-inkSoft">Fecha</label>
-          <input
-            type="date"
-            required
-            value={saleDate}
-            onChange={(e) => setSaleDate(e.target.value)}
-            className="w-full rounded border border-goldPale px-3 py-2.5 text-sm outline-none focus:border-gold"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-inkSoft">Cliente</label>
-          <input
-            required
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            className="w-full rounded border border-goldPale px-3 py-2.5 text-sm outline-none focus:border-gold"
-            placeholder="Nombre del cliente"
-          />
-        </div>
+      <div>
+        <label className="mb-1 block text-xs text-inkSoft">Fecha</label>
+        <input
+          type="date"
+          required
+          value={saleDate}
+          onChange={(e) => setSaleDate(e.target.value)}
+          className="w-full rounded border border-goldPale px-3 py-2.5 text-sm outline-none focus:border-gold"
+        />
       </div>
+
+      <CustomerPicker
+        customers={customers}
+        name={customerName}
+        phone={customerPhone}
+        onChangeName={setCustomerName}
+        onChangePhone={setCustomerPhone}
+        onSelectCustomer={setSelectedCustomer}
+      />
 
       <div>
         <label className="mb-1 block text-xs text-inkSoft">Producto</label>
-        <select
-          value={productId}
-          onChange={(e) => handleProductChange(e.target.value)}
-          className="w-full rounded border border-goldPale px-3 py-2.5 text-sm outline-none focus:border-gold"
-        >
-          {products.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        <ProductCombobox products={products} selectedProduct={selectedProduct} onSelect={handleProductSelect} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
