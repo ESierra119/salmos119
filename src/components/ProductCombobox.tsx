@@ -46,23 +46,25 @@ export function ProductCombobox({
         className="w-full rounded border border-goldPale px-3 py-2.5 text-sm outline-none focus:border-gold"
       />
       {open && results.length > 0 && (
-        <div className="absolute z-20 mt-1 max-h-72 w-[380px] max-w-[92vw] overflow-y-auto rounded border border-goldPale bg-white shadow-lg">
+        <div className="absolute z-20 mt-1 max-h-80 w-[460px] max-w-[92vw] overflow-y-auto rounded border border-goldPale bg-white shadow-lg">
           {results.map((p) => (
             <button
               key={p.id}
               type="button"
               onMouseDown={() => handleSelect(p)}
-              className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm hover:bg-creamDeep"
+              className="flex w-full items-start gap-3 px-3 py-2.5 text-left text-sm hover:bg-creamDeep"
             >
-              <span className="flex-1 truncate">{p.name}</span>
-              <span className="whitespace-nowrap font-mono text-[10px] text-inkSoft">{p.internal_code}</span>
-              <span className="whitespace-nowrap text-xs text-inkSoft">{formatCOP(p.price)}</span>
+              <span className="min-w-0 flex-1 leading-snug">{p.name}</span>
+              <span className="flex-shrink-0 whitespace-nowrap text-right">
+                <span className="block font-mono text-[10px] text-inkSoft">{p.internal_code}</span>
+                <span className="block text-xs text-inkSoft">{formatCOP(p.price)}</span>
+              </span>
             </button>
           ))}
         </div>
       )}
       {open && results.length === 0 && (
-        <div className="absolute z-20 mt-1 w-[380px] max-w-[92vw] rounded border border-goldPale bg-white px-3 py-2 text-sm text-inkSoft shadow-lg">
+        <div className="absolute z-20 mt-1 w-[460px] max-w-[92vw] rounded border border-goldPale bg-white px-3 py-2 text-sm text-inkSoft shadow-lg">
           Ningún producto coincide.
         </div>
       )}
