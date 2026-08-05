@@ -32,20 +32,36 @@ export default async function ContabilidadPage() {
   const utilidadNeta = utilidadBruta - gastosTotal;
   const capitalInvertido = allInvestments.reduce((sum, i) => sum + i.amount, 0);
   const saldoPendiente = allSales.reduce((sum, s) => sum + Math.max(0, saleTotals(s, s.sale_items ?? []).balance), 0);
+  const totalCobrado = allSales.reduce((sum, s) => sum + s.paid_amount, 0);
+  const efectivoDisponible = capitalInvertido + totalCobrado - gastosTotal;
 
   return (
     <>
       <AdminTopbar title="Contabilidad" />
 
       <div className="mx-auto max-w-6xl px-6 py-8">
-        {/* PANORAMA FINANCIERO */}
-        <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+        {/* EFECTIVO REAL (caja) */}
+        <div className="mb-6 rounded border border-gold bg-goldPale/30 p-5">
+          <p className="mb-1 text-[11px] uppercase tracking-wider text-goldDark">Efectivo disponible ahora mismo</p>
+          <p className="mb-3 font-display text-4xl text-ink">{formatCOP(efectivoDisponible)}</p>
+          <p className="text-xs text-inkSoft">
+            Capital invertido ({formatCOP(capitalInvertido)}) + dinero ya cobrado ({formatCOP(totalCobrado)}) − gastos
+            ({formatCOP(gastosTotal)}). No incluye lo que aún te deben tus clientes.
+          </p>
+        </div>
+
+        <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
           <SummaryCard label="Capital invertido" value={formatCOP(capitalInvertido)} />
-          <SummaryCard label="Ingresos por ventas" value={formatCOP(ingresos)} />
+          <SummaryCard label="Cobrado de ventas" value={formatCOP(totalCobrado)} />
           <SummaryCard label="Gastos totales" value={formatCOP(gastosTotal)} />
+          <SummaryCard label="Saldo por cobrar" value={formatCOP(saldoPendiente)} warn={saldoPendiente > 0} />
+        </div>
+
+        {/* RENTABILIDAD (sobre el valor total de las ventas, aunque no se haya cobrado todo) */}
+        <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3">
+          <SummaryCard label="Ingresos por ventas (total)" value={formatCOP(ingresos)} />
           <SummaryCard label="Utilidad bruta" value={formatCOP(utilidadBruta)} />
           <SummaryCard label="Utilidad neta" value={formatCOP(utilidadNeta)} highlight />
-          <SummaryCard label="Saldo por cobrar" value={formatCOP(saldoPendiente)} warn={saldoPendiente > 0} />
         </div>
 
         {/* GRÁFICAS */}
