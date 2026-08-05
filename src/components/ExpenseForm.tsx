@@ -10,7 +10,7 @@ export function ExpenseForm() {
   const supabase = createClient();
 
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().slice(0, 10));
-  const [category, setCategory] = useState<ExpenseCategory>('envios');
+  const [category, setCategory] = useState<ExpenseCategory>('inventario');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);

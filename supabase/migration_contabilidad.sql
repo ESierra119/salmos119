@@ -7,7 +7,7 @@ create table if not exists expenses (
   id uuid primary key default gen_random_uuid(),
   expense_date date not null default current_date,
   category text not null default 'otros' check (
-    category in ('envios', 'empaques', 'publicidad', 'papeleria', 'herramientas', 'otros')
+    category in ('inventario', 'envios', 'empaques', 'publicidad', 'papeleria', 'herramientas', 'otros')
   ),
   amount numeric(12,2) not null default 0,
   description text,

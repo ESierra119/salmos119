@@ -31,9 +31,10 @@ export type Product = {
 
 export type PaymentType = 'contado' | 'credito';
 
-export type ExpenseCategory = 'envios' | 'empaques' | 'publicidad' | 'papeleria' | 'herramientas' | 'otros';
+export type ExpenseCategory = 'inventario' | 'envios' | 'empaques' | 'publicidad' | 'papeleria' | 'herramientas' | 'otros';
 
 export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+  inventario: 'Compra de inventario',
   envios: 'Envíos y domicilios',
   empaques: 'Empaques y embalaje',
   publicidad: 'Publicidad y marketing',
