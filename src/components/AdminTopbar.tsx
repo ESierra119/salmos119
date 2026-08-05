@@ -17,6 +17,7 @@ export function AdminTopbar({ title }: { title: string }) {
 
   const isVentas = pathname?.startsWith('/admin/ventas');
   const isClientes = pathname?.startsWith('/admin/clientes');
+  const isContabilidad = pathname?.startsWith('/admin/contabilidad');
 
   return (
     <div className="border-b border-goldPale bg-white">
@@ -38,7 +39,7 @@ export function AdminTopbar({ title }: { title: string }) {
         <Link
           href="/admin"
           className={`border-b-2 px-3 py-2.5 text-sm ${
-            !isVentas && !isClientes ? 'border-gold text-ink' : 'border-transparent text-inkSoft hover:text-goldDark'
+            !isVentas && !isClientes && !isContabilidad ? 'border-gold text-ink' : 'border-transparent text-inkSoft hover:text-goldDark'
           }`}
         >
           Productos
@@ -58,6 +59,14 @@ export function AdminTopbar({ title }: { title: string }) {
           }`}
         >
           Clientes
+        </Link>
+        <Link
+          href="/admin/contabilidad"
+          className={`border-b-2 px-3 py-2.5 text-sm ${
+            isContabilidad ? 'border-gold text-ink' : 'border-transparent text-inkSoft hover:text-goldDark'
+          }`}
+        >
+          Contabilidad
         </Link>
       </div>
     </div>

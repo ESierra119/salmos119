@@ -31,6 +31,36 @@ export type Product = {
 
 export type PaymentType = 'contado' | 'credito';
 
+export type ExpenseCategory = 'envios' | 'empaques' | 'publicidad' | 'papeleria' | 'herramientas' | 'otros';
+
+export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+  envios: 'Envíos y domicilios',
+  empaques: 'Empaques y embalaje',
+  publicidad: 'Publicidad y marketing',
+  papeleria: 'Papelería y oficina',
+  herramientas: 'Herramientas y servicios',
+  otros: 'Otros',
+};
+
+export type Expense = {
+  id: string;
+  expense_date: string;
+  category: ExpenseCategory;
+  amount: number;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Investment = {
+  id: string;
+  investment_date: string;
+  amount: number;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Customer = {
   id: string;
   name: string;
