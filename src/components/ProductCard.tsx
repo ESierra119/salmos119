@@ -11,6 +11,9 @@ export function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
   const [justAdded, setJustAdded] = useState(false);
 
+  const isNew = Date.now() - new Date(product.created_at).getTime() < 30 * 24 * 60 * 60 * 1000;
+  const onSale = product.compare_at_price != null && product.compare_at_price > product.price;
+
   function handleAdd(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -25,11 +28,18 @@ export function ProductCard({ product }: { product: Product }) {
       className="group flex flex-col overflow-hidden rounded border border-goldPale bg-white transition hover:-translate-y-1 hover:shadow-lg"
     >
       <div className="relative flex h-[200px] items-center justify-center overflow-hidden bg-creamDeep">
-        {product.categories?.name && (
-          <span className="absolute left-2.5 top-2.5 rounded-full bg-white/90 px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-goldDark">
-            {product.categories.name}
-          </span>
-        )}
+        <div className="absolute left-2.5 top-2.5 flex flex-col items-start gap-1">
+          {product.categories?.name && (
+            <span className="rounded-full bg-white/90 px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-goldDark">
+              {product.categories.name}
+            </span>
+          )}
+          {isNew && (
+            <span className="rounded-full bg-red-600 px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-white">
+              Nuevo producto
+            </span>
+          )}
+        </div>
         <span
           className={`absolute right-2.5 top-2.5 rounded-full px-2.5 py-1 text-[9.5px] uppercase tracking-wider ${
             product.is_preorder ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
@@ -68,12 +78,19 @@ export function ProductCard({ product }: { product: Product }) {
           </p>
         )}
 
-        <div className="mt-auto flex items-center justify-between pt-2.5">
-          <span className="font-display text-[17px] text-ink">{formatCOP(product.price)}</span>
+        <div className="mt-auto flex items-end justify-between pt-2.5">
+          {onSale ? (
+            <div className="flex flex-col leading-tight">
+              <span className="text-xs text-inkSoft line-through">Antes {formatCOP(product.compare_at_price!)}</span>
+              <span className="font-display text-xl text-red-600">Ahora {formatCOP(product.price)}</span>
+            </div>
+          ) : (
+            <span className="font-display text-[17px] text-ink">{formatCOP(product.price)}</span>
+          )}
           <button
             onClick={handleAdd}
             aria-label="Agregar al carrito"
-            className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${
+            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border transition ${
               justAdded ? 'border-goldDark bg-goldDark text-white' : 'border-ink text-ink hover:bg-ink hover:text-cream'
             }`}
           >

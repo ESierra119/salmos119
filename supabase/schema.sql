@@ -23,6 +23,7 @@ create table if not exists products (
   name text not null,
   description text,
   price numeric(12,2) not null default 0,
+  compare_at_price numeric(12,2),
   cost_price numeric(12,2) not null default 0,
   shipping_cost numeric(12,2) not null default 0,
   category_id uuid references categories(id) on delete set null,

@@ -18,7 +18,14 @@ export function ProductDetailActions({ product }: { product: Product }) {
 
   return (
     <div>
-      <div className="mb-5 font-display text-3xl text-ink">{formatCOP(product.price)}</div>
+      {product.compare_at_price != null && product.compare_at_price > product.price ? (
+        <div className="mb-5">
+          <div className="text-sm text-inkSoft line-through">Antes {formatCOP(product.compare_at_price)}</div>
+          <div className="font-display text-4xl text-red-600">Ahora {formatCOP(product.price)}</div>
+        </div>
+      ) : (
+        <div className="mb-5 font-display text-3xl text-ink">{formatCOP(product.price)}</div>
+      )}
 
       {product.is_preorder && (
         <p className="mb-4 text-xs text-inkSoft">

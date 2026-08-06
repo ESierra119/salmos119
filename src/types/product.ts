@@ -16,6 +16,7 @@ export type Product = {
   name: string;
   description: string | null;
   price: number;
+  compare_at_price: number | null;
   cost_price: number;
   shipping_cost: number;
   category_id: string | null;

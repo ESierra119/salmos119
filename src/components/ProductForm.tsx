@@ -96,10 +96,24 @@ export function ProductForm({
     setSaving(true);
     setError(null);
 
+    const newPrice = Number(price);
+    let compareAtPrice: number | null = product?.compare_at_price ?? null;
+    if (product) {
+      if (newPrice < product.price) {
+        // Bajó el precio: guardamos el anterior para mostrar "Antes / Ahora"
+        compareAtPrice = product.price;
+      } else if (newPrice > product.price) {
+        // Subió el precio: ya no aplica ningún descuento
+        compareAtPrice = null;
+      }
+      // Si el precio no cambió, se deja igual el compareAtPrice que ya tenía
+    }
+
     const payload = {
       name,
       description,
-      price: Number(price),
+      price: newPrice,
+      compare_at_price: compareAtPrice,
       cost_price: Number(costPrice),
       shipping_cost: Number(shippingCost),
       category_id: categoryId || null,
@@ -173,6 +187,11 @@ export function ProductForm({
             className="w-full rounded border border-goldPale px-3 py-2.5 text-sm outline-none focus:border-gold"
             placeholder="185000"
           />
+          {product?.compare_at_price && product.compare_at_price > Number(price) && (
+            <p className="mt-1 text-[11px] text-goldDark">
+              Se mostrará como oferta: antes {formatCOP(product.compare_at_price)}
+            </p>
+          )}
         </div>
         <div>
           <label className="mb-1 block text-xs text-inkSoft">Stock</label>
