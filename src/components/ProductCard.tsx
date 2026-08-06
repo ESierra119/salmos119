@@ -37,7 +37,7 @@ export function ProductCard({ product }: { product: Product }) {
           )}
           {isNew && (
             <span className="rounded-full bg-red-600 px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-white">
-              Nuevo producto
+              Nuevo
             </span>
           )}
         </div>
