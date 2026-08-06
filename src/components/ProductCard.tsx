@@ -28,7 +28,7 @@ export function ProductCard({ product }: { product: Product }) {
       className="group flex flex-col overflow-hidden rounded border border-goldPale bg-white transition hover:-translate-y-1 hover:shadow-lg"
     >
       <div className="relative flex h-[200px] items-center justify-center overflow-hidden bg-creamDeep">
-        <div className="absolute left-2.5 top-2.5 flex flex-col items-start gap-1">
+        <div className="absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-1">
           {product.categories?.name && (
             <span className="rounded-full bg-white/90 px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-goldDark">
               {product.categories.name}
@@ -41,7 +41,7 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
         <span
-          className={`absolute right-2.5 top-2.5 rounded-full px-2.5 py-1 text-[9.5px] uppercase tracking-wider ${
+          className={`absolute right-2.5 top-2.5 z-10 rounded-full px-2.5 py-1 text-[9.5px] uppercase tracking-wider ${
             product.is_preorder ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
           }`}
         >
