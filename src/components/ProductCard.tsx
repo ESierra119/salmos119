@@ -27,10 +27,11 @@ export function ProductCard({ product }: { product: Product }) {
       href={`/producto/${product.id}`}
       className="group flex flex-col overflow-hidden rounded border border-goldPale bg-white transition hover:-translate-y-1 hover:shadow-lg"
     >
-      <div className="relative flex h-[200px] items-center justify-center overflow-hidden bg-creamDeep">
-        <div className="absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-1">
+      {/* Etiquetas: fila propia, arriba de la imagen */}
+      <div className="flex items-start justify-between gap-2 px-3 pt-3">
+        <div className="flex flex-col items-start gap-1">
           {product.categories?.name && (
-            <span className="rounded-full bg-white/90 px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-goldDark">
+            <span className="rounded-full bg-creamDeep px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-goldDark">
               {product.categories.name}
             </span>
           )}
@@ -41,12 +42,16 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
         <span
-          className={`absolute right-2.5 top-2.5 z-10 rounded-full px-2.5 py-1 text-[9.5px] uppercase tracking-wider ${
+          className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[9.5px] uppercase tracking-wider ${
             product.is_preorder ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
           }`}
         >
           {product.is_preorder ? 'Sobre pedido' : 'Entrega inmediata'}
         </span>
+      </div>
+
+      {/* Imagen */}
+      <div className="relative mt-2 flex h-[180px] items-center justify-center overflow-hidden bg-creamDeep">
         {product.image_url ? (
           <Image
             src={product.image_url}
@@ -64,6 +69,7 @@ export function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
+      {/* Detalles */}
       <div className="flex flex-1 flex-col gap-1.5 p-4">
         <h3 className="min-h-[44px] font-display text-[17px] leading-snug">{product.name}</h3>
         {product.internal_code && (
